@@ -1,3 +1,3 @@
 
-rootProject.name = "LearnEnglishWordsTelegramBotApp"
+rootProject.name = "LearnEnglishWordsTelegramBot"
 
