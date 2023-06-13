@@ -26,7 +26,7 @@ fun computeStatistics() {
     val learnedWords = dictionary.count { it.correctAnswersCount >= MINIMUM_CORRECT_ANSWERS }
     val percentageLearnedWords = (learnedWords * 100) / sizeWords
     println(
-        "Выучено: $learnedWords из $sizeWords| $percentageLearnedWords %"
+        "Выучено: $learnedWords из $sizeWords | $percentageLearnedWords%"
     )
 }
 
