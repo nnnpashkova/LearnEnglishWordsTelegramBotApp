@@ -4,7 +4,6 @@ fun main() {
     val dictionary: MutableList<Word> = mutableListOf()
     val wordsFiles = File("words.txt")
     wordsFiles.createNewFile()
-    val lines = wordsFiles.readLines()
     for (value in wordsFiles.readLines()) {
         val line = value.split("|")
         val word = Word(
