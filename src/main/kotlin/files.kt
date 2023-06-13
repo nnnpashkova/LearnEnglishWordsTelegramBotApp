@@ -26,23 +26,20 @@ fun computeStatistics() {
     val learnedWords = dictionary.count { it.correctAnswersCount >= MINIMUM_CORRECT_ANSWERS }
     val percentageLearnedWords = (learnedWords * 100) / sizeWords
     println(
-        "Выучено: $learnedWords, из: $sizeWords| $percentageLearnedWords %"
+        "Выучено: $learnedWords из $sizeWords| $percentageLearnedWords %"
     )
 }
 
 fun readDictionaryFromFile(): List<Word> {
-    val dictionary: MutableList<Word> = mutableListOf()
     val wordsFiles = File("words.txt")
-    for (value in wordsFiles.readLines()) {
+    return wordsFiles.readLines().map { value ->
         val line = value.split("|")
-        val word = Word(
+        Word(
             original = line[0],
             translate = line[1],
             correctAnswersCount = line.getOrNull(2)?.toInt() ?: 0
         )
-        dictionary.add(word)
     }
-    return dictionary
 }
 
 const val LEARN_WORDS = 1
