@@ -2,11 +2,10 @@ import java.io.File
 
 fun main() {
     while (true) {
-        println("Меню: 1 – Учить слова, 2 – Статистика, 0 – Выход")
+        println("Меню: $LEARN_WORDS – Учить слова, $STATISTICS – Статистика, $EXIT – Выход")
         when (readln().toInt()) {
-            LEARN_WORDS -> println("Выбрали 1")
+            LEARN_WORDS -> println()
             STATISTICS -> {
-                println("Выбрали 2")
                 computeStatistics()
             }
 
@@ -24,26 +23,16 @@ data class Word(
 fun computeStatistics() {
     val dictionary = readDictionaryFromFile()
     val sizeWords = dictionary.size
-    var learnedWords = 0
-
-    dictionary.forEach { word ->
-        if (word.correctAnswersCount >= MINIMUM_CORRECT_ANSWERS) {
-            learnedWords++
-        }
-    }
+    val learnedWords = dictionary.count { it.correctAnswersCount >= MINIMUM_CORRECT_ANSWERS }
     val percentageLearnedWords = (learnedWords * 100) / sizeWords
     println(
-        "Выучено: $learnedWords, из: $sizeWords|$percentageLearnedWords"
+        "Выучено: $learnedWords, из: $sizeWords| $percentageLearnedWords %"
     )
-    dictionary.forEach {
-        println(it)
-    }
 }
 
 fun readDictionaryFromFile(): List<Word> {
     val dictionary: MutableList<Word> = mutableListOf()
     val wordsFiles = File("words.txt")
-    wordsFiles.createNewFile()
     for (value in wordsFiles.readLines()) {
         val line = value.split("|")
         val word = Word(
