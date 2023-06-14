@@ -4,7 +4,10 @@ fun main() {
     while (true) {
         println("Меню: $LEARN_WORDS – Учить слова, $STATISTICS – Статистика, $EXIT – Выход")
         when (readln().toInt()) {
-            LEARN_WORDS -> println()
+            LEARN_WORDS -> {
+                learnWords()
+            }
+
             STATISTICS -> {
                 computeStatistics()
             }
@@ -40,6 +43,32 @@ fun readDictionaryFromFile(): List<Word> {
             correctAnswersCount = line.getOrNull(2)?.toInt() ?: 0
         )
     }
+}
+
+fun learnWords() {
+    val dictionary = readDictionaryFromFile()
+    while (true){
+        val unLearnedWords = dictionary.filter {
+            it.correctAnswersCount < MINIMUM_CORRECT_ANSWERS
+        }
+        if (unLearnedWords.isEmpty()){
+            break
+        }
+        val words = unLearnedWords.shuffled().take(4)
+        val correctWord = words.random()
+        println("Как переводится слово ${correctWord.original}")
+        println("Варианты ответа:")
+        words.forEach{ println(it.translate) }
+        println("Введите ответ:")
+        val userWord = readln()
+        if (userWord == correctWord.translate){
+            correctWord.correctAnswersCount++
+            println("Верно.")
+        } else {
+            println("Неверно.")
+        }
+    }
+    println("Вы выучили все слова")
 }
 
 const val LEARN_WORDS = 1
