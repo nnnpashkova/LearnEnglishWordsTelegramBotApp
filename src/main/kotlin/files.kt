@@ -1,5 +1,4 @@
 import java.io.File
-import kotlin.math.E
 
 fun main() {
     while (true) {
@@ -48,17 +47,25 @@ fun readDictionaryFromFile(): List<Word> {
 
 fun learnWords() {
     val dictionary = readDictionaryFromFile()
-    while (true){
+    while (true) {
         val unLearnedWords = dictionary.filter {
             it.correctAnswersCount < MINIMUM_CORRECT_ANSWERS
         }
-        if (unLearnedWords.isEmpty()){
+        if (unLearnedWords.isEmpty()) {
             break
         }
-        val words = dictionary.shuffled().take(3)
-            .toMutableList().apply {
-                add(unLearnedWords.random())
-            }
+        val words = unLearnedWords.shuffled()
+            .toMutableSet()
+            .take(NUMBER_OF_ANSWERS_TO_THE_QUESTION)
+            .toMutableSet()
+        if (words.size < NUMBER_OF_ANSWERS_TO_THE_QUESTION) {
+            val additionalWordsCount = NUMBER_OF_ANSWERS_TO_THE_QUESTION - words.size
+            val additionalWords = dictionary.minus(words)
+                .shuffled()
+                .take(additionalWordsCount)
+            words.addAll(additionalWords)
+        }
+
         val correctWord = words.random()
         println("Как переводится слово ${correctWord.original}")
         println("Варианты ответа:")
@@ -67,10 +74,10 @@ fun learnWords() {
         println("$EXIT - выйти в меню")
         println("Введите ответ:")
         val userWord = readln().toInt()
-        if (userWord == words.indexOf(correctWord) + 1){
+        if (userWord == words.indexOf(correctWord) + 1) {
             correctWord.correctAnswersCount++
             println("Верно ${correctWord.translate}")
-        } else if(userWord == EXIT) {
+        } else if (userWord == EXIT) {
             return
         } else {
             println("Неверно.")
@@ -83,3 +90,4 @@ const val LEARN_WORDS = 1
 const val STATISTICS = 2
 const val EXIT = 0
 const val MINIMUM_CORRECT_ANSWERS = 3
+const val NUMBER_OF_ANSWERS_TO_THE_QUESTION = 4
