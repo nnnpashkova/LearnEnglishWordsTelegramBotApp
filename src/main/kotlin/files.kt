@@ -1,4 +1,5 @@
 import java.io.File
+import kotlin.math.E
 
 fun main() {
     while (true) {
@@ -54,16 +55,23 @@ fun learnWords() {
         if (unLearnedWords.isEmpty()){
             break
         }
-        val words = unLearnedWords.shuffled().take(4)
+        val words = dictionary.shuffled().take(3)
+            .toMutableList().apply {
+                add(unLearnedWords.random())
+            }
         val correctWord = words.random()
         println("Как переводится слово ${correctWord.original}")
         println("Варианты ответа:")
-        words.forEach{ println(it.translate) }
+        words.forEachIndexed { index, value -> println("${index + 1} - ${value.translate}") }
+
+        println("$EXIT - выйти в меню")
         println("Введите ответ:")
-        val userWord = readln()
-        if (userWord == correctWord.translate){
+        val userWord = readln().toInt()
+        if (userWord == words.indexOf(correctWord) + 1){
             correctWord.correctAnswersCount++
-            println("Верно.")
+            println("Верно ${correctWord.translate}")
+        } else if(userWord == EXIT) {
+            return
         } else {
             println("Неверно.")
         }
