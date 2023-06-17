@@ -76,6 +76,7 @@ fun learnWords() {
         val userWord = readln().toInt()
         if (userWord == words.indexOf(correctWord) + 1) {
             correctWord.correctAnswersCount++
+            saveDictionary(dictionary)
             println("Верно ${correctWord.translate}")
         } else if (userWord == EXIT) {
             return
@@ -86,6 +87,15 @@ fun learnWords() {
     println("Вы выучили все слова")
 }
 
+fun saveDictionary(dictionary: List<Word>) {
+    val writer = File("words.txt").bufferedWriter()
+    dictionary.forEach {
+        val line = "${it.original}|${it.translate}|${it.correctAnswersCount}"
+        writer.write(line)
+        writer.newLine()
+    }
+    writer.close()
+}
 const val LEARN_WORDS = 1
 const val STATISTICS = 2
 const val EXIT = 0
