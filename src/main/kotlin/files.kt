@@ -22,18 +22,20 @@ fun main() {
                     question.variants.forEachIndexed { index, value -> println("${index + 1} - ${value.translate}") }
                     println("$EXIT - выйти в меню")
                     println("Введите ответ:")
-                    val userWord = readln().toInt()
-                    if (userWord == question.variants.indexOf(question.correctAnswer) + 1) {
-                        question.correctAnswer.correctAnswersCount++
+                    when (readln().toInt()) {
+                        question.variants.indexOf(question.correctAnswer) + 1 -> {
+                            question.correctAnswer.correctAnswersCount++
                             trainer.saveDictionary(trainer.dictionary)
-                        println("Верно ${question.correctAnswer.translate}")
-                    } else if (userWord == EXIT) {
-                        return
-                    } else {
-                        println("Неверно.")
+                            println("Верно ${question.correctAnswer.translate}")
+                        }
+                        EXIT -> {
+                            return
+                        }
+                        else -> {
+                            println("Неверно.")
+                        }
                     }
                 }
-                println("Вы выучили все слова")
             }
 
             STATISTICS -> {
