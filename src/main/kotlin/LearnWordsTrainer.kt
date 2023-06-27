@@ -20,7 +20,7 @@ data class Word(
 class LearnWordsTrainer(private val learnedAnswerCount:Int = 3,
                         private val countOfQuestionWords: Int = 4,) {
 
-    private var question: Question? = null
+    var question: Question? = null
     val dictionary = readDictionaryFromFile()
 
     private fun saveDictionary(dictionary: List<Word>) {
