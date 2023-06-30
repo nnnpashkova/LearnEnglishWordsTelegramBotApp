@@ -1,50 +1,140 @@
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
+import kotlinx.serialization.json.Json
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class Update(
+    @SerialName("update_id")
+    val updateId: Long,
+    @SerialName("message")
+    val message: Message? = null,
+    @SerialName("callback_query")
+    val callbackQuery: CallbackQuery? = null
+)
+
+@Serializable
+data class Response(
+    @SerialName("result")
+    val result: List<Update>,
+)
+
+@Serializable
+data class Message(
+    @SerialName("text")
+    val text: String,
+    @SerialName("chat")
+    val chat: Chat
+)
+
+@Serializable
+data class CallbackQuery(
+    @SerialName("data")
+    val data: String,
+    @SerialName("message")
+    val message: Message? = null
+)
+
+@Serializable
+data class Chat(
+    @SerialName("id")
+    val id: Long,
+)
+
+@Serializable
+data class SendMessageRequest(
+    @SerialName("chat_id")
+    val chatId: Long,
+    @SerialName("text")
+    val text: String,
+    @SerialName("reply_markup")
+    val replyMarkup: ReplyMarkup,
+)
+
+@Serializable
+data class ReplyMarkup(
+    @SerialName("inline_keyboard")
+    val inlineKeyboard: List<List<InlineKeyboard>>,
+)
+
+@Serializable
+data class InlineKeyboard(
+    @SerialName("text")
+    val text: String,
+    @SerialName("callback_data")
+    val callbackData: String
+)
+
+private val json = Json {
+    ignoreUnknownKeys = true
+}
+private val telegramBotService = TelegramBotService(json)
+private val trainers = mutableMapOf<Long, LearnWordsTrainer>()
 
 fun main(args: Array<String>) {
     val botToken = args[0]
-    var updateId = 0
+    var lastUpdate = 0L
 
     while (true) {
         Thread.sleep(2000)
-        val updates: String = getUpdates(botToken, updateId)
-        println(updates)
-        val messageTextRegex: Regex = "\"text\":\"(.+?)\"".toRegex()
-        val matchResult: Sequence<MatchResult> = messageTextRegex.findAll(updates, 0)
-        val groups: MatchResult = matchResult.last()
-        val text = groups.groups.get(1)?.value
+        val responseString = telegramBotService.getUpdates(botToken, lastUpdate)
+        println(responseString)
+
+        val response = json.decodeFromString(Response.serializer(), responseString)
+        val firstUpdate = response.result.firstOrNull() ?: continue
+        val updateId = firstUpdate.updateId
+        println("updateId = $updateId")
+        lastUpdate = updateId + 1
+        val text = firstUpdate.message?.text
         println(text)
 
-        val chatRegex: Regex = "\"chat\":\\{(.+?)\\}".toRegex()
-        val chatMatchResult: MatchResult? = chatRegex.find(updates)
-        val chatGroups = chatMatchResult?.groups
-        val chat = chatGroups?.get(1)?.value
-        if (chat != null && chat.isEmpty().not()) {
-            val chatIdRegex: Regex = "\"id\":(.+\\d),".toRegex()
-            val chatIdMatchResult: MatchResult? = chatIdRegex.find(chat)
-            val chatIdGroups = chatIdMatchResult?.groups
-            val chatId = chatIdGroups?.get(1)?.value
-            if (chatId != null && text != null && "hello".equals(text, ignoreCase = true)) {
-                sendMessage(botToken, chatId.toInt(), text)
+        val chatId = firstUpdate.message?.chat?.id ?: firstUpdate.callbackQuery?.message?.chat?.id ?: continue
+        val trainer = trainers.getOrPut(chatId) { LearnWordsTrainer("words_${chatId}.txt") }
+
+        if (text != null && "hello".equals(text, ignoreCase = true)) {
+            telegramBotService.sendMessage(botToken, chatId, text)
+        }
+        if (text != null && "menu".equals(text, ignoreCase = true)) {
+            telegramBotService.sendMenu(botToken, chatId)
+        }
+        when (val data = firstUpdate.callbackQuery?.data) {
+            TelegramBotService.STATISTICS_CLICKED -> {
+                val statistics = trainer.getStatistics()
+                val statisticsMessage =
+                    "Выучено ${statistics.learnedWords} слов из ${statistics.sizeWords}, ${statistics.percentageLearnedWords}%"
+                telegramBotService.sendMessage(botToken, chatId, statisticsMessage)
+            }
+            TelegramBotService.LEARN_WORDS_CLICKED -> {
+                checkNextQuestionAndSend(trainer, botToken, chatId)
+            }
+            TelegramBotService.RESET_STATISTICS_CLICKED -> {
+                trainer.resetStatistics()
+                val statistics = trainer.getStatistics()
+                val statisticsMessage =
+                    "Выучено ${statistics.learnedWords} слов из ${statistics.sizeWords}, ${statistics.percentageLearnedWords}%"
+                telegramBotService.sendMessage(botToken, chatId, statisticsMessage)
+            }
+            else -> {
+                if (data?.startsWith(TelegramBotService.CALLBACK_DATA_ANSWER_PREFIX) == true) {
+                    val index = data.substringAfter(TelegramBotService.CALLBACK_DATA_ANSWER_PREFIX).toInt()
+                    if (trainer.checkAnswer(index)) {
+                        telegramBotService.sendMessage(botToken, chatId, "Правильно")
+                    } else {
+                        val message = "Не правильно: ${trainer.question?.correctAnswer?.original} - ${trainer.question?.correctAnswer?.translate}"
+                        telegramBotService.sendMessage(botToken, chatId, message)
+                    }
+                    checkNextQuestionAndSend(trainer, botToken, chatId)
+                }
             }
         }
     }
 }
 
-fun getUpdates(botToken: String, updatesId: Int): String {
-    val urlGetUpdates = "https://api.telegram.org/bot$botToken/getUpdates?offset=$updatesId"
-    val client: HttpClient = HttpClient.newBuilder().build()
-    val request: HttpRequest = HttpRequest.newBuilder().uri(URI.create(urlGetUpdates)).build()
-    val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
-    return response.body()
-}
-
-fun sendMessage(botToken: String, chtId: Int, text: String ): String {
-    val sendMassage =  "https://api.telegram.org/bot$botToken/sendMessage?chat_id=$chtId&text=$text"
-    val client: HttpClient = HttpClient.newBuilder().build()
-    val request: HttpRequest = HttpRequest.newBuilder().uri(URI.create(sendMassage)).build()
-    val response: HttpResponse<String> = client.send(request, HttpResponse.BodyHandlers.ofString())
-    return response.body()
+private fun checkNextQuestionAndSend(trainer: LearnWordsTrainer, botToken: String, chatId: Long){
+    val question = trainer.getNextQuestion()
+    if (question == null) {
+        telegramBotService.sendMessage(botToken, chatId, "Вы выучили все слова в базе")
+    } else {
+        telegramBotService.sendQuestion(botToken, chatId, question)
+    }
 }
