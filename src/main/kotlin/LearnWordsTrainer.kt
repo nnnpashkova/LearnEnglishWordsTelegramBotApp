@@ -17,14 +17,22 @@ data class Word(
     var correctAnswersCount: Int = 0,
 )
 
-class LearnWordsTrainer(private val learnedAnswerCount:Int = 3,
-                        private val countOfQuestionWords: Int = 4,) {
+class LearnWordsTrainer(
+    private val fileName: String = "words.txt",
+    private val learnedAnswerCount: Int = 3,
+    private val countOfQuestionWords: Int = 4,
+) {
 
     var question: Question? = null
     val dictionary = readDictionaryFromFile()
 
     private fun saveDictionary(dictionary: List<Word>) {
-        val writer = File("words.txt").bufferedWriter()
+        val file = File(fileName)
+        if (file.exists().not()) {
+            file.createNewFile()
+            File("words.txt").copyTo(file)
+        }
+        val writer = file.bufferedWriter()
         dictionary.forEach {
             val line = "${it.original}|${it.translate}|${it.correctAnswersCount}"
             writer.write(line)
@@ -33,9 +41,16 @@ class LearnWordsTrainer(private val learnedAnswerCount:Int = 3,
         writer.close()
     }
 
+    fun resetStatistics() {
+        dictionary.forEach {
+            it.correctAnswersCount = 0
+        }
+        saveDictionary(dictionary)
+    }
+
     fun getStatistics(): Statistics {
         val sizeWords = dictionary.size
-        val learnedWords = dictionary.filter { it.correctAnswersCount >=3}.size
+        val learnedWords = dictionary.filter { it.correctAnswersCount >= 3 }.size
         val percentageLearnedWords = (learnedWords * 100) / sizeWords
         return Statistics(sizeWords, learnedWords, percentageLearnedWords)
     }
@@ -75,21 +90,24 @@ class LearnWordsTrainer(private val learnedAnswerCount:Int = 3,
             }
         } ?: false
     }
-}
 
-private fun readDictionaryFromFile(): List<Word> {
-    val wordsFiles = File("words.txt")
-    return wordsFiles.readLines().mapNotNull { value ->
-        val line = value.split("|")
-        if (line.size == 3) {
-            Word(
-                original = line[0],
-                translate = line[1],
-                correctAnswersCount = line.getOrNull(2)?.toInt() ?: 0
-            )
-        } else {
-            println("Ошибка: файл содержит строку неправильного формата: $line")
-            null
+    private fun readDictionaryFromFile(): List<Word> {
+        val file = File(fileName)
+        if (file.exists().not()) {
+            File("words.txt").copyTo(file)
+        }
+        return file.readLines().mapNotNull { value ->
+            val line = value.split("|")
+            if (line.size == 3) {
+                Word(
+                    original = line[0],
+                    translate = line[1],
+                    correctAnswersCount = line.getOrNull(2)?.toInt() ?: 0
+                )
+            } else {
+                println("Ошибка: файл содержит строку неправильного формата: $line")
+                null
+            }
         }
     }
 }
